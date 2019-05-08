@@ -1,7 +1,7 @@
-'use strict';
+"use strict";
 module.exports = {
   up: (queryInterface, Sequelize) => {
-    return queryInterface.createTable('Votes', {
+    return queryInterface.createTable("Votes", {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -9,14 +9,14 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       value: {
- // #1 Validate that value is not null and set to either -1 or 1.
+ // #1
         type: Sequelize.INTEGER,
         allowNull: false,
         validate: {
           isIn: [[-1, 1]]
         }
       },
- // #2 Set a postId attribute to associate a vote with a post. If we delete the associated post, we delete the votes associated with it as well.
+ // #2
       postId: {
         type: Sequelize.INTEGER,
         onDelete: "CASCADE",
@@ -27,7 +27,7 @@ module.exports = {
           as: "postId"
         }
       },
- // #3 Set a userId attribute to associate a vote with a user. If we delete the associated user, we delete the votes associated with it as well.
+ // #3
       userId: {
         type: Sequelize.INTEGER,
         onDelete: "CASCADE",
@@ -49,6 +49,6 @@ module.exports = {
     });
   },
   down: (queryInterface, Sequelize) => {
-    return queryInterface.dropTable('Votes');
+    return queryInterface.dropTable("Votes");
   }
 };
