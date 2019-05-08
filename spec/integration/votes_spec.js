@@ -1,4 +1,3 @@
-// #1 Load the required dependencies for our tests.
 const request = require("request");
 const server = require("../../src/server");
 const base = "http://localhost:3000/topics/";
@@ -12,24 +11,21 @@ const Vote = require("../../src/db/models").Vote;
 describe("routes : votes", () => {
 
   beforeEach((done) => {
-
- // #2 Define variables to use in the tests.
     this.user;
     this.topic;
     this.post;
     this.vote;
 
- // #3 Clear the database and create the objects for our tests.
     sequelize.sync({force: true}).then((res) => {
       User.create({
         email: "starman@tesla.com",
         password: "Trekkie4lyfe"
       })
-      .then((res) => {
-        this.user = res;
+      .then((user) => {
+        this.user = user;
 
         Topic.create({
-          title: "Expeditions to Alpha Centauri",
+          title: "Expediitons to Alpha Centauri",
           description: "A compilation of reports from recent visits to the star system.",
           posts: [{
             title: "My first visit to Proxima Centauri b",
@@ -42,8 +38,8 @@ describe("routes : votes", () => {
             as: "posts"
           }
         })
-        .then((res) => {
-          this.topic = res;
+        .then((topic) => {
+          this.topic = topic;
           this.post = this.topic.posts[0];
           done();
         })
@@ -54,22 +50,22 @@ describe("routes : votes", () => {
       });
     });
   });
+
   describe("guest attempting to vote on a post", () => {
 
-    beforeEach((done) => {    // before each suite in this context
+    beforeEach((done) => {
       request.get({
         url: "http://localhost:3000/auth/fake",
         form: {
-          userId: 0 // ensure no user in scope
+          userId: 0 // ensure no user signed in
         }
       },
         (err, res, body) => {
           done();
         }
       );
-
     });
-//  Define a suite to describe a guest user attempting to vote.
+
     describe("GET /topics/:topicId/posts/:postId/votes/upvote", () => {
 
       it("should not create a new vote", (done) => {
@@ -78,7 +74,7 @@ describe("routes : votes", () => {
         };
         request.get(options,
           (err, res, body) => {
-            Vote.findOne({            // look for the vote, should not find one.
+            Vote.findOne({
               where: {
                 userId: this.user.id,
                 postId: this.post.id
@@ -95,17 +91,16 @@ describe("routes : votes", () => {
           }
         );
       });
-
     });
   });
 
   describe("signed in user voting on a post", () => {
 
-    beforeEach((done) => {  // before each suite in this context
-      request.get({         // mock authentication
+    beforeEach((done) => {
+      request.get({
         url: "http://localhost:3000/auth/fake",
         form: {
-          role: "member",     // mock authenticate as member user
+          role: "member",
           userId: this.user.id
         }
       },
@@ -118,18 +113,19 @@ describe("routes : votes", () => {
     describe("GET /topics/:topicId/posts/:postId/votes/upvote", () => {
 
       it("should create an upvote", (done) => {
+
         const options = {
           url: `${base}${this.topic.id}/posts/${this.post.id}/votes/upvote`
         };
         request.get(options,
           (err, res, body) => {
-            Vote.findOne({          
+            Vote.findOne({
               where: {
                 userId: this.user.id,
                 postId: this.post.id
               }
             })
-            .then((vote) => {               // confirm that an upvote was created
+            .then((vote) => {
               expect(vote).not.toBeNull();
               expect(vote.value).toBe(1);
               expect(vote.userId).toBe(this.user.id);
@@ -143,11 +139,48 @@ describe("routes : votes", () => {
           }
         );
       });
+
+      it("should not create more than one vote per user for a given post", (done) => {
+        const options = {
+          url: `${base}${this.topic.id}/posts/${this.post.id}/votes/upvote`
+        };
+        request.get(options,
+          (err, res, body) => {
+            Vote.findOne({
+              where: {
+                userId: this.user.id,
+                postId: this.post.id
+              }
+            })
+            .then((vote) => {
+              request.get(options,
+                (err, res, body) => {
+                  Vote.findAll({
+                    where: {
+                      userId: this.user.id,
+                      postId: this.post.id
+                    }
+                  })
+                  .then((votes) => {
+                    expect(votes.length).toBe(1);
+                    done();
+                  })
+                }
+              )
+            })
+            .catch((err) => {
+              console.log(err);
+              done();
+            })
+          }
+        )
+      })
     });
 
     describe("GET /topics/:topicId/posts/:postId/votes/downvote", () => {
 
       it("should create a downvote", (done) => {
+
         const options = {
           url: `${base}${this.topic.id}/posts/${this.post.id}/votes/downvote`
         };
@@ -159,7 +192,7 @@ describe("routes : votes", () => {
                 postId: this.post.id
               }
             })
-            .then((vote) => {               // confirm that a downvote was created
+            .then((vote) => {
               expect(vote).not.toBeNull();
               expect(vote.value).toBe(-1);
               expect(vote.userId).toBe(this.user.id);
@@ -174,8 +207,5 @@ describe("routes : votes", () => {
         );
       });
     });
-
   });
-  // test suites go here
-
 });
