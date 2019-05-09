@@ -13,13 +13,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-  
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  }
-    
-
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    }
   }, {});
   Post.associate = function(models) {
     // associations can be defined here
@@ -31,24 +28,75 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: "userId",
       onDelete: "CASCADE"
     });
-      Post.hasMany(models.Comment, {
-     foreignKey: "postId",
-     as: "comments"
-   });
-       Post.hasMany(models.Vote, {
-     foreignKey: "postId",
-     as: "votes"
-   });
-      Post.prototype.getPoints = function(){
+    Post.hasMany(models.Comment, {
+      foreignKey: "postId",
+      as: "comments"
+    });
+    Post.hasMany(models.Vote, {
+      foreignKey: "postId",
+      as: "votes"
+    });
+    Post.hasMany(models.Favorite, {
+      foreignKey: "postId",
+      as: "favorites"
+    });
 
- // #1
-     if(this.votes.length === 0) return 0
+    Post.afterCreate((post, callback) => {
+      return models.Favorite.create({
+        userId: post.userId,
+        postId: post.id
+      });
+    });
 
- // #2
-     return this.votes
-       .map((v) => { return v.value })
-       .reduce((prev, next) => { return prev + next });
-   
+    Post.afterCreate((post, callback) => {
+      return models.Vote.create({
+        value: 1,
+        userId: post.userId,
+        postId: post.id
+      });
+    });
   };
+
+  Post.prototype.getPoints = function(){
+    if(!this.votes || this.votes.length === 0) return 0;
+
+    return this.votes
+      .map((v) => { return v.value })
+      .reduce((prev, next) => { return prev + next });
+  };
+
+  Post.prototype.hasUpvotedFor = function(userId, callback){
+    return this.getVotes({
+      where: {
+        userId: userId,
+        postId: this.id,
+        value: 1
+      }
+    })
+    .then((votes) => {
+      votes.length != 0 ? callback(true) : callback(false);
+    });
+  };
+
+  Post.prototype.hasDownvotedFor = function(userId, callback){
+    return this.getVotes({
+      where: {
+        userId: userId,
+        postId: this.id,
+        value: -1
+      }
+    })
+    .then((votes) => {
+      votes.length != 0 ? callback(true) : callback(false);
+    });
+  };
+
+  Post.prototype.getFavoriteFor = function(userId){
+    return this.favorites.find((favorite) => { return favorite.userId == userId });
+  };
+  //
+  // Post.prototype.hasUpvotedFor = function (userId){
+  //   return `this.votes::::: ${this.votes}`
+  // };
   return Post;
 };
