@@ -25,18 +25,6 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: "userId",
       onDelete: "CASCADE"
     });
-
-    Comment.addScope("lastFiveFor", (userId) => {
-
-      return {
-        include: [{
-          model: models.Post
-        }],
-        where: { userId: userId},
-        limit: 5,
-        order: [["createdAt", "DESC"]]
-      }
-    })
   };
   return Comment;
 };
